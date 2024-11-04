@@ -1,45 +1,23 @@
 name: "Terragrunt CI/CD Pipeline"
-
-on:
-  pull_request:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'dev/**'
-  pull_request:
-    branches:
-      - develop
-    paths:
-      - 'dev/**'
-
-env:
-  tf_version: '1.9.8'
-  tg_version: '0.68.7'
-  working_dir: 'project'
-
-permissions:
-  contents: read
-  pull-requests: write 
-
-env:
-  tf_version: '1.9.8'
-  tg_version: '0.68.7'
-  working_dir: 'project'
-
-permissions:
-  contents: read
-  pull-requests: write 
+  on:
+    pull_request:
+      branches:
+        - main
+        - develop
+      paths:
+        - 'dev/**'
+  env:
+    tf_version: '1.9.8'
+    tg_version: '0.68.7'
+    working_dir: 'project'
+  permissions:
+    contents: read
+    pull-requests: write 
 
 jobs:
   terragrunt-staging:
     name: 'Terragrunt-Staging'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-    env:
-      WORKING_DIRECTORY: dev/staging
     steps:
       - name: 'Checkout'
         uses: actions/checkout@develop
@@ -58,14 +36,10 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
   terragrunt-production:
     name: 'Terragrunt-Production'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-    env:
-      WORKING_DIRECTORY: dev/production
     steps:
       - name: 'Checkout'
         uses: actions/checkout@main
@@ -80,16 +54,49 @@ jobs:
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
+
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-  plan-production:
+  plan-staging:
     runs-on: ubuntu-latest
     needs: [ checks ]
     steps:
       - name: 'Checkout-Staging'
+        uses: actions/checkout@develop
+
+      - name: Plan-Staging
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tofu_version: ${{ env.tofu_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: ${{ env.working_dir }}
+          tg_command: 'plan'
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [ plan-staging ]
+    environment: 'staging'
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@develop
+
+      - name: Deploy
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tofu_version: ${{ env.tofu_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: ${{ env.working_dir }}
+          tg_command: 'apply'
+
+  plan-production:
+    runs-on: ubuntu-latest
+    needs: [ checks ]
+    steps:
+      - name: 'Checkout-Production'
         uses: actions/checkout@main
 
       - name: Plan-Production
