@@ -1,0 +1,106 @@
+name: "Terragrunt CI/CD Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dev/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'dev/**'
+
+jobs:
+  terragrunt:
+    name: Terragrunt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    env:
+      WORKING_DIRECTORY: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.5
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v1.1.0
+        with:
+          terragrunt_version: 0.35.12
+          
+      - name: Terragrunt Format
+        id: fmt
+        run: terragrunt hclfmt --terragrunt-check
+
+      - name: Terragrunt Init
+        id: init
+        run: terragrunt run-all init
+
+      - name: Terragrunt Validate
+        id: validate
+        run: terragrunt run-all validate
+
+      - name: Terragrunt Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: |
+          echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+          terragrunt run-all plan -no-color >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+        continue-on-error: true
+
+      - uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+            #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+            #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+            #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${{ env.PLAN_OUTPUT }}
+            \`\`\`
+
+            </details>
+
+            Results for commit: ${{ github.event.pull_request.head.sha }}
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+              
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terragrunt Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terragrunt Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terragrunt run-all apply --terragrunt-non-interactive
+
+ 
