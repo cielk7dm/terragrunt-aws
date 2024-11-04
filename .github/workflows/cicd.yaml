@@ -1,4 +1,5 @@
 name: 'Terragrunt CI/CD Pipeline'
+
 on:
   push:
     branches:
@@ -11,10 +12,12 @@ on:
       - develop
     paths:
       - 'dev/**'
+
 env:
   tf_version: '1.9.8'
   tg_version: '0.68.7'
   working_dir: 'project'
+
 permissions:
   contents: read
   pull-requests: write 
@@ -25,12 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout'
-        uses: actions/checkout@develop
+        uses: actions/checkout@v2  # Usar la versión correcta
       
       - name: Check terragrunt HCL
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'hclfmt --terragrunt-check --terragrunt-diff'
@@ -47,19 +50,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout'
-        uses: actions/checkout@main
+        uses: actions/checkout@v2  # Usar la versión correcta
       
       - name: Check terragrunt HCL
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'hclfmt --terragrunt-check --terragrunt-diff'
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
-
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -67,64 +69,64 @@ jobs:
 
   plan-staging:
     runs-on: ubuntu-latest
-    needs: [ checks ]
+    needs: terragrunt-staging  # Corregido para depender del job anterior
     steps:
       - name: 'Checkout-Staging'
-        uses: actions/checkout@develop
-
+        uses: actions/checkout@v2
+      
       - name: Plan-Staging
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'plan'
 
   deploy-staging:
     runs-on: ubuntu-latest
-    needs: [ plan-staging ]
+    needs: plan-staging
     environment: 'staging'
     if: github.ref == 'refs/heads/develop'
     steps:
       - name: 'Checkout'
-        uses: actions/checkout@develop
+        uses: actions/checkout@v2
 
       - name: Deploy
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'apply'
 
   plan-production:
     runs-on: ubuntu-latest
-    needs: [ checks ]
+    needs: terragrunt-production  # Corregido para depender del job anterior
     steps:
       - name: 'Checkout-Production'
-        uses: actions/checkout@main
+        uses: actions/checkout@v2
 
       - name: Plan-Production
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'plan'
 
   deploy-production:
     runs-on: ubuntu-latest
-    needs: [ plan-production ]
+    needs: plan-production
     environment: 'prod'
     if: github.ref == 'refs/heads/main'
     steps:
       - name: 'Checkout'
-        uses: actions/checkout@main
+        uses: actions/checkout@v2
 
       - name: Deploy
         uses: gruntwork-io/terragrunt-action@v2
         with:
-          tofu_version: ${{ env.tofu_version }}
+          tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
           tg_command: 'apply'
