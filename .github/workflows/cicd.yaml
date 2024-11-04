@@ -80,7 +80,7 @@ jobs:
           tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
-          tg_command: 'plan'
+          tg_command: 'run-all plan -auto-approve'
 
   deploy-staging:
     runs-on: ubuntu-latest
@@ -97,7 +97,7 @@ jobs:
           tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
-          tg_command: 'apply'
+          tg_command: 'run-all apply -auto-approve'
 
   plan-production:
     runs-on: ubuntu-latest
@@ -112,7 +112,7 @@ jobs:
           tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
-          tg_command: 'plan'
+          tg_command: 'run-all plan -auto-approve'
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -129,4 +129,4 @@ jobs:
           tf_version: ${{ env.tf_version }}  # Corregido de tofu_version a tf_version
           tg_version: ${{ env.tg_version }}
           tg_dir: ${{ env.working_dir }}
-          tg_command: 'apply'
+          tg_command: 'run-all apply -auto-approve'
