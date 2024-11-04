@@ -1,4 +1,4 @@
-name: 'Terragrunt CI/CD Pipeline'
+name: "Terragrunt CI/CD Pipeline"
 
 on:
   push:
@@ -13,36 +13,42 @@ on:
     paths:
       - 'dev/**'
 
-env:
-  tf_version: '1.9.8'
-  tg_version: '0.68.7'
-  working_dir: 'dev'
-
-permissions:
-  contents: read
-  pull-requests: write 
-
 jobs:
-  checks:
-    name: 'Terragrunt'
+  terragrunt:
+    name: Terragrunt
     runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-      - name: Check terragrunt HCL
-        uses: gruntwork-io/terragrunt-action@v2
-        with:
-          tf_version: ${{ env.tf_version }}
-          tg_version: ${{ env.tg_version }}
-          tg_dir: ${{ env.working_dir }}
-          tg_command: 'hclfmt --terragrunt-check --terragrunt-diff'
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
+    env:
+      WORKING_DIRECTORY: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+          
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: eu-north-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+        run:
+          terraform --version
+
+      - name: Setup Terragrunt
+        run: |
+          sudo wget -q -O /usr/bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.68.7/terragrunt_linux_amd64"
+          sudo chmod +x /usr/bin/terragrunt
+          terragrunt -v
+
       - name: Terragrunt Init
         id: init
         run: terragrunt run-all init
@@ -51,33 +57,50 @@ jobs:
         id: validate
         run: terragrunt run-all validate
 
-  plan:
-    runs-on: ubuntu-latest
-    needs: [ checks ]
-    steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-      - name: Plan
-        uses: gruntwork-io/terragrunt-action@v2
-        with:
-          tf_version: ${{ env.tf_version }}
-          tg_version: ${{ env.tg_version }}
-          tg_dir: ${{ env.working_dir }}
-          tg_command: 'run-all plan -auto-approve'
+      - name: Terragrunt Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: |
+          echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+          terragrunt run-all plan -no-color >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+        continue-on-error: true
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [ plan ]
-    environment: 'staging'
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-
-      - name: Deploy
-        uses: gruntwork-io/terragrunt-action@v2
+      - uses: actions/github-script@0.9.0
+        if: github.event_name == 'pull_request'
         with:
-          tf_version: ${{ env.tf_version }}
-          tg_version: ${{ env.tg_version }}
-          tg_dir: ${{ env.working_dir }}
-          tg_command: 'run-all apply -auto-approve'
+          github-token: ${{ secrets.OWN_GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+            #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+            #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+            #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${{ env.PLAN_OUTPUT }}
+            \`\`\`
+
+            </details>
+
+            Results for commit: ${{ github.event.pull_request.head.sha }}
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+              
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terragrunt Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terragrunt Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terragrunt run-all apply --terragrunt-non-interactive
+
+ 
