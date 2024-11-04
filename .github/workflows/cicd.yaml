@@ -16,7 +16,7 @@ on:
 env:
   tf_version: '1.9.8'
   tg_version: '0.68.7'
-  working_dir: 'project'
+  working_dir: 'dev'
 
 permissions:
   contents: read
