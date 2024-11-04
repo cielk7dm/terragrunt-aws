@@ -3,7 +3,7 @@ name: "Terragrunt CI/CD Pipeline"
 on:
   push:
     branches:
-      - main
+      - develop
     paths:
       - 'dev/**'
   pull_request:
@@ -37,13 +37,13 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 1.0.5
+          terraform_version: 1.9.8
           terraform_wrapper: false
 
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v1.1.0
         with:
-          terragrunt_version: 0.35.12
+          terragrunt_version: 0.68.6
           
       - name: Terragrunt Format
         id: fmt
