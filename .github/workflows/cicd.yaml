@@ -69,7 +69,7 @@ jobs:
       - uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.OWN_GITHUB_TOKEN }}
           script: |
             const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
             #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
