@@ -64,7 +64,7 @@ jobs:
 
       - name: Terragrunt Plan
         id: plan
-        if: github.event_name == 'pull_request'  && github.event.pull_request.merged == false
+        if: github.event_name == 'pull_request'
         run: |
           echo "Running terragrunt plan"
           terragrunt run-all plan -no-color
