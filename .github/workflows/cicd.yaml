@@ -109,10 +109,10 @@ jobs:
         run: exit 1
 
       - name: Staging Terragrunt Apply
-        if: github.head.ref_name == 'develop' && github.event_name == 'pull_request'
+        if: github.ref_name == 'develop' && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
 
       - name: Production Terragrunt Apply
-        if: github.head.ref_name == 'main' && github.event_name == 'pull_request'
+        if: github.ref_name == 'main' && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
  
