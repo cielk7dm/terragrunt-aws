@@ -70,7 +70,7 @@ jobs:
       - uses: actions/github-script@v5
         if: github.event_name == 'pull_request'
         with:
-          github-token: ${{ secrets.OWN_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const output = `
             #### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
