@@ -61,7 +61,7 @@ jobs:
 
       - name: Terragrunt Plan
         id: plan
-        if: github.event_name == 'pull_request'
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
           echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
           terragrunt run-all plan -no-color >> $GITHUB_ENV
@@ -109,8 +109,11 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Terragrunt Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Staging Terragrunt Apply
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
 
+      - name: Production Terragrunt Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'pull_request'
+        run: terragrunt run-all apply --terragrunt-non-interactive
  
