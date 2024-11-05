@@ -3,6 +3,7 @@ name: "Terragrunt CI/CD Pipeline"
 on:
   push:
     branches:
+      - main
       - develop
     paths:
       - 'dev/**'
@@ -21,7 +22,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIRECTORY }}
-
     env:
       WORKING_DIRECTORY: dev
 
