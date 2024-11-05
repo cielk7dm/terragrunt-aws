@@ -3,7 +3,7 @@ name: "Terragrunt CI/CD Pipeline"
 on:
   push:
     branches:
-      - [*]
+      - '*'
     paths:
       - 'dev/**'
   pull_request:
