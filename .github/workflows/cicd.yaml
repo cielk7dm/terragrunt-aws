@@ -105,7 +105,8 @@ jobs:
             })
 
       - name: Terragrunt Apply
-        if: github.event.pull_request.merged == true  && github.event_name == 'pull_request'
+        id: apply
+        if: github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
 
       - name: Terragrunt Plan Status
