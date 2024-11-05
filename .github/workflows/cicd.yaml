@@ -63,23 +63,13 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           echo "Running terragrunt plan"
-          terragrunt run-all plan -no-color > terragrunt_plan_output.txt
+          terragrunt run-all plan -no-color
         continue-on-error: true
       
-      - name: Upload Terragrunt Plan Output
-        id: upload_plan_output
-        if: github.event_name == 'push'
-        run: |
-          echo "Uploading Terragrunt plan output"
-          PLAN_OUTPUT=$(cat terragrunt_plan_output.txt)
-          echo "PLAN_OUTPUT<<EOF" >> $GITHUB_ENV
-          echo "$PLAN_OUTPUT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
       - uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         env:
-          PLAN_OUTPUT: ${{ env.PLAN_OUTPUT }}
+          PLAN_OUTPUT: ${{ steps.plan.outputs.stdout }}
           INIT_OUTCOME: ${{ steps.init.outcome }}
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
         with:
