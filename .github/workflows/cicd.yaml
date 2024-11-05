@@ -103,7 +103,7 @@ jobs:
               repo: context.repo.repo,
               body: output
             })
-
+            
       - name: Terragrunt Apply
         if: github.event.pull_request.merged == true  && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
