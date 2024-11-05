@@ -61,7 +61,7 @@ jobs:
 
       - name: Terragrunt Plan
         id: plan
-        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        if: github.event_name == 'push'
         run: |
           echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
           terragrunt run-all plan -no-color >> $GITHUB_ENV
