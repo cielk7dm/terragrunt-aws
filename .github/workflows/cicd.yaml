@@ -72,8 +72,6 @@ jobs:
         with:
           github-token: ${{ secrets.OWN_GITHUB_TOKEN }}
           script: |
-            const { github, context } = require('@actions/github'); // Importa github y context
-
             const output = `
             #### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
             #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
@@ -99,7 +97,6 @@ jobs:
               repo: context.repo.repo,
               body: output
             });
-
 
       - name: Terragrunt Plan Status
         if: steps.plan.outcome == 'failure'
