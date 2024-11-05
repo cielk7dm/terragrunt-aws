@@ -67,34 +67,37 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
         continue-on-error: true
 
-      - uses: actions/github-script@0.9.0
+      - uses: actions/github-script@v5
         if: github.event_name == 'pull_request'
         with:
           github-token: ${{ secrets.OWN_GITHUB_TOKEN }}
           script: |
-            const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+            const output = `
+            #### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
             #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
             #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
             #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
 
             <details><summary>Show Plan</summary>
 
-            \`\`\`\n
+            \`\`\`
             ${{ env.PLAN_OUTPUT }}
             \`\`\`
 
             </details>
 
-            Results for commit: ${{ github.event.pull_request.head.sha }}
-            
+            Results for commit: \`${{ github.event.pull_request.head.sha }}\`
+
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
-              
-            github.issues.createComment({
+
+            // Crear el comentario en el pull request
+            await github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
-            })
+            });
+
 
       - name: Terragrunt Plan Status
         if: steps.plan.outcome == 'failure'
