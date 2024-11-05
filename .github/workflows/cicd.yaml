@@ -3,8 +3,7 @@ name: "Terragrunt CI/CD Pipeline"
 on:
   push:
     branches:
-      - main
-      - develop
+      - [*]
     paths:
       - 'dev/**'
   pull_request:
@@ -63,21 +62,31 @@ jobs:
         id: plan
         if: github.event_name == 'push'
         run: |
-          echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
-          terragrunt run-all plan -no-color >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
+          echo "Running terragrunt plan"
+          terragrunt run-all plan -no-color > terragrunt_plan_output.txt
         continue-on-error: true
+      
+      - name: Upload Terragrunt Plan Output
+        id: upload_plan_output
+        if: github.event_name == 'push'
+        run: |
+          echo "Uploading Terragrunt plan output"
+          PLAN_OUTPUT=$(cat terragrunt_plan_output.txt)
+          echo "PLAN_OUTPUT<<EOF" >> $GITHUB_ENV
+          echo "$PLAN_OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         env:
-          PLAN: "terragrunt\n${{ steps.plan.outputs.stdout }}"
+          PLAN_OUTPUT: ${{ env.PLAN_OUTPUT }}
+          INIT_OUTCOME: ${{ steps.init.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            const output = `#### Terraform Initialization ⚙️\`${process.env.INIT_OUTCOME}\`
+            #### Terraform Validation 🤖\`${process.env.VALIDATE_OUTCOME}\`
             <details><summary>Validation Output</summary>
 
             \`\`\`\n
@@ -91,7 +100,7 @@ jobs:
             <details><summary>Show Plan</summary>
 
             \`\`\`\n
-            ${process.env.PLAN}
+            ${process.env.PLAN_OUTPUT}
             \`\`\`
 
             </details>
