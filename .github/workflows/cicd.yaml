@@ -60,7 +60,7 @@ jobs:
 
       - name: Terragrunt Plan
         id: plan
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request'
         run: |
           echo "Running terragrunt plan"
           terragrunt run-all plan -no-color
@@ -104,10 +104,6 @@ jobs:
               body: output
             })
 
-      - name: Terragrunt Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
       - name: Staging Terragrunt Apply
         if: github.ref_name == 'develop' && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
@@ -115,4 +111,7 @@ jobs:
       - name: Production Terragrunt Apply
         if: github.ref_name == 'main' && github.event_name == 'pull_request'
         run: terragrunt run-all apply --terragrunt-non-interactive
- 
+
+      - name: Terragrunt Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1 
